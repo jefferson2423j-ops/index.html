@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Futebol Arcade ⚽</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #065f46, #022c22);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #ecfeff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    canvas {
+      background: #16a34a;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.6);
+    }
+    .info {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #bbf7d0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Futebol Arcade ⚽</h1>
+  <canvas id="game" width="700" height="420"></canvas>
+  <div class="info">Mover: WASD | Chutar: Espaço</div>
+</div>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  let player = { x: 100, y: 200, r: 15, speed: 4 };
+  let enemy = { x: 550, y: 200, r: 15, speed: 2.5 };
+  let ball = { x: 350, y: 210, r: 10, vx: 0, vy: 0 };
+
+  let scorePlayer = 0;
+  let scoreEnemy = 0;
+
+  const keys = {};
+
+  document.addEventListener('keydown', e => keys[e.code] = true);
+  document.addEventListener('keyup', e => keys[e.code] = false);
+
+  function resetPositions() {
+    player.x = 100; player.y = 210;
+    enemy.x = 550; enemy.y = 210;
+    ball.x = 350; ball.y = 210;
+    ball.vx = 0; ball.vy = 0;
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function update() {
+    if (keys['KeyW']) player.y -= player.speed;
+    if (keys['KeyS']) player.y += player.speed;
+    if (keys['KeyA']) player.x -= player.speed;
+    if (keys['KeyD']) player.x += player.speed;
+
+    // limites do campo
+    player.x = Math.max(player.r, Math.min(canvas.width - player.r, player.x));
+    player.y = Math.max(player.r, Math.min(canvas.height - player.r, player.y));
+
+    // IA simples do adversário
+    enemy.y += (ball.y - enemy.y) * 0.02;
+    enemy.x += (ball.x - enemy.x) * 0.005;
+
+    // colisão jogador-bola
+    if (distance(player, ball) < player.r + ball.r) {
+      if (keys['Space']) {
+        ball.vx = 6;
+        ball.vy = (ball.y - player.y) * 0.2;
+      }
+    }
+
+    // colisão inimigo-bola
+    if (distance(enemy, ball) < enemy.r + ball.r) {
+      ball.vx = -5;
+      ball.vy = (ball.y - enemy.y) * 0.2;
+    }
+
+    // movimento da bola
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    ball.vx *= 0.98;
+    ball.vy *= 0.98;
+
+    // colisão com bordas
+    if (ball.y < ball.r || ball.y > canvas.height - ball.r) ball.vy *= -1;
+
+    // gols
+    if (ball.x < 0) {
+      scoreEnemy++;
+      resetPositions();
+    }
+    if (ball.x > canvas.width) {
+      scorePlayer++;
+      resetPositions();
+    }
+  }
+
+  function drawField() {
+    ctx.fillStyle = '#16a34a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#ecfeff';
+    ctx.lineWidth = 2;
+
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 10);
+    ctx.lineTo(canvas.width / 2, canvas.height - 10);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function draw() {
+    drawField();
+
+    // jogador
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // inimigo
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, enemy.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // bola
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // placar
+    ctx.fillStyle = '#ecfeff';
+    ctx.font = '20px Arial';
+    ctx.fillText(scorePlayer + '  x  ' + scoreEnemy, canvas.width / 2 - 30, 30);
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+</script>
+
+</body>
+</html>
